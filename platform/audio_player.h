@@ -1,0 +1,61 @@
+#ifndef AUDIO_PLAYER_H
+#define AUDIO_PLAYER_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdatomic.h>
+
+// FFmpeg 头文件
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswresample/swresample.h>
+#include <libavutil/opt.h>
+
+// ALSA 头文件
+#include <alsa/asoundlib.h>
+
+typedef enum { PLAYER_STOPPED, PLAYER_PLAYING, PLAYER_PAUSED } player_state_t;
+
+typedef struct
+{
+    // FFmpeg 相关
+    AVFormatContext * format_ctx;
+    AVCodecContext * codec_ctx;
+    SwrContext * swr_ctx;
+    int audio_stream_index;
+
+    // ALSA 相关
+    snd_pcm_t * pcm_handle;
+    snd_pcm_uframes_t frames;
+    unsigned int sample_rate;
+    int channels;
+
+    // 播放控制
+    atomic_int state;
+    atomic_int seek_request;
+    atomic_int seek_pos;
+    pthread_t play_thread;
+    pthread_mutex_t mutex;
+
+    // 进度信息
+    atomic_int current_pts;
+    int64_t duration;
+
+    char * filename;
+} audio_player_t;
+
+// 函数声明
+audio_player_t * player_create(const char * filename);
+int player_play(audio_player_t * player);
+int player_pause(audio_player_t * player);
+int player_resume(audio_player_t * player);
+int player_stop(audio_player_t * player);
+int player_seek(audio_player_t * player, double percent);
+double player_get_position(audio_player_t * player);
+double player_get_duration(audio_player_t * player);
+void player_destroy(audio_player_t * player);
+
+#endif

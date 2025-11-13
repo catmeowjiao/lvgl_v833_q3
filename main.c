@@ -19,6 +19,7 @@
 #include "pages/page_manager.h"
 #include "pages/page_main.h"
 #include "pages/page_demo.h"
+#include "pages/page_audio.h"
 #include "pages/page_file_manager.h"
 #include "pages/page_calculator.h"
 #include "pages/page_apple.h"

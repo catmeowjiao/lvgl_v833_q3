@@ -40,7 +40,13 @@ static void explorer_event_handler(lv_event_t * e)
         printf(file_name);
         printf("\n");
 
-        page_open(page_image(&file_name), NULL);
+        if(str_end(file_name, ".png") || str_end(file_name, ".jpg") || str_end(file_name, ".jpeg") ||
+           str_end(file_name, ".bmp"))
+            page_open(page_image(&file_name), NULL);
+
+        if(str_end(file_name, ".mp3") || str_end(file_name, ".wav") || str_end(file_name, ".ogg") ||
+           str_end(file_name, ".m4a"))
+            page_open(page_audio(&file_name), NULL);
     }
 }
 

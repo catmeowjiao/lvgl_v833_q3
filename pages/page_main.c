@@ -2,6 +2,7 @@
 
 static void btn_adb_click(lv_event_t * e);
 static void btn_demo_click(lv_event_t * e);
+static void btn_audio_click(lv_event_t * e);
 static void btn_robot_click(lv_event_t * e);
 static void btn_file_manager_click(lv_event_t * e);
 static void btn_calculator_click(lv_event_t * e);
@@ -45,6 +46,14 @@ lv_obj_t * page_main() {
 	lv_obj_center(btn_label_demo);
 	lv_obj_add_event_cb(btn_demo, btn_demo_click, LV_EVENT_CLICKED, NULL);
 
+    lv_obj_t * btn_audio = lv_btn_create(screen);
+    lv_obj_set_size(btn_audio, lv_pct(45), lv_pct(25));
+    lv_obj_align(btn_audio, LV_FLEX_ALIGN_CENTER, 0, 0);
+    lv_obj_t * btn_label_audio = lv_label_create(btn_audio);
+    lv_label_set_text(btn_label_audio, "audio test");
+    lv_obj_center(btn_label_audio);
+    lv_obj_add_event_cb(btn_audio, btn_audio_click, LV_EVENT_CLICKED, NULL);
+
     lv_obj_t * btn_file_manager = lv_btn_create(screen);
     lv_obj_set_size(btn_file_manager, lv_pct(45), lv_pct(25));
     lv_obj_align(btn_file_manager, LV_FLEX_ALIGN_CENTER, 0, 0);
@@ -82,6 +91,11 @@ static void btn_adb_click(lv_event_t * e)
 static void btn_demo_click(lv_event_t * e)      //static可以防止同名冲突
 {	
     page_open(page_demo(), NULL);
+}
+
+static void btn_audio_click(lv_event_t * e) // static可以防止同名冲突
+{
+    page_open(page_audio("/mnt/app/factory/play_test.wav"), NULL);
 }
 
 static void btn_robot_click(lv_event_t * e)
