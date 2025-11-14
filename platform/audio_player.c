@@ -17,21 +17,21 @@ audio_player_t * player_create(const char * filename)
     pthread_mutex_init(&player->mutex, NULL);
 
     // 初始化状态
-    atomic_store(&player->state, PLAYER_STOPPED);
-    atomic_store(&player->seek_request, 0);
-    atomic_store(&player->current_pts, 0);
+    player->state = PLAYER_STOPPED;
+    player->seek_request = 0;
+    player->current_pts = 0;
 
     return player;
 }
 
-int player_play(audio_player_t * player)
+int player_init(audio_player_t * player)
 {
     if(!player) return -1;
 
     pthread_mutex_lock(&player->mutex);
 
     // 如果已经在播放，直接返回
-    if(atomic_load(&player->state) == PLAYER_PLAYING) {
+    if(player->state == PLAYER_PLAYING) {
         pthread_mutex_unlock(&player->mutex);
         return 0;
     }
@@ -147,13 +147,15 @@ int player_play(audio_player_t * player)
     }
 
     // 获取持续时间
-    player->duration = player->format_ctx->duration;
+    AVStream * audio_stream = player->format_ctx->streams[player->audio_stream_index];
+    player->time_base       = audio_stream->time_base;
+    player->duration        = audio_stream->duration; // 使用流的duration而不是format_ctx的
 
     // 创建播放线程
-    atomic_store(&player->state, PLAYER_PLAYING);
+    player->state = PLAYER_PAUSED;
     if(pthread_create(&player->play_thread, NULL, play_thread_func, player) != 0) {
         fprintf(stderr, "无法创建播放线程\n");
-        atomic_store(&player->state, PLAYER_STOPPED);
+        player->state = PLAYER_STOPPED;
         ret = -1;
         goto cleanup;
     }
@@ -184,29 +186,31 @@ static void * play_thread_func(void * arg)
         goto cleanup;
     }
 
-    while(atomic_load(&player->state) != PLAYER_STOPPED) {
+    while(player->state != PLAYER_STOPPED) {
         // 检查暂停状态
-        if(atomic_load(&player->state) == PLAYER_PAUSED) {
+        if(player->state == PLAYER_PAUSED) {
             usleep(100000); // 100ms
             continue;
         }
 
         // 检查跳转请求
-        if(atomic_load(&player->seek_request)) {
-            int64_t seek_target = atomic_load(&player->seek_pos);
+        if(player->seek_request) {
+            int64_t seek_target = player->seek_pos;
             if(av_seek_frame(player->format_ctx, player->audio_stream_index, seek_target, AVSEEK_FLAG_BACKWARD) < 0) {
                 fprintf(stderr, "跳转失败\n");
             } else {
                 avcodec_flush_buffers(player->codec_ctx);
-                atomic_store(&player->current_pts, seek_target);
+                player->current_pts = seek_target;
             }
-            atomic_store(&player->seek_request, 0);
+            player->seek_request = 0;
         }
 
         int ret = av_read_frame(player->format_ctx, packet);
         if(ret < 0) {
             // 文件结束或错误
-            break;
+            //break;
+            player->state = PLAYER_PAUSED;
+            continue;
         }
 
         if(packet->stream_index == player->audio_stream_index) {
@@ -226,7 +230,7 @@ static void * play_thread_func(void * arg)
                 }
 
                 // 更新当前播放位置
-                atomic_store(&player->current_pts, frame->pts);
+                player->current_pts = frame->pts;
 
                 // 重采样
                 uint8_t * out_data[1] = {audio_buffer};
@@ -265,8 +269,8 @@ int player_pause(audio_player_t * player)
 {
     if(!player) return -1;
 
-    if(atomic_load(&player->state) == PLAYER_PLAYING) {
-        atomic_store(&player->state, PLAYER_PAUSED);
+    if(player->state == PLAYER_PLAYING) {
+        player->state = PLAYER_PAUSED;
         snd_pcm_pause(player->pcm_handle, 1);
         return 0;
     }
@@ -277,8 +281,8 @@ int player_resume(audio_player_t * player)
 {
     if(!player) return -1;
 
-    if(atomic_load(&player->state) == PLAYER_PAUSED) {
-        atomic_store(&player->state, PLAYER_PLAYING);
+    if(player->state == PLAYER_PAUSED) {
+        player->state = PLAYER_PLAYING;
         snd_pcm_pause(player->pcm_handle, 0);
         return 0;
     }
@@ -291,7 +295,7 @@ int player_stop(audio_player_t * player)
 
     pthread_mutex_lock(&player->mutex);
 
-    atomic_store(&player->state, PLAYER_STOPPED);
+    player->state = PLAYER_STOPPED;
 
     // 等待线程结束
     if(player->play_thread) {
@@ -325,31 +329,66 @@ int player_stop(audio_player_t * player)
     return 0;
 }
 
-int player_seek(audio_player_t * player, double percent)
+//根据百分比跳转
+int player_seek_pct(audio_player_t * player, double percent)
 {
-    if(!player || percent < 0 || percent > 100) return -1;
+    int64_t target_pts = (int64_t)(player->duration * percent / 100.0);
+    int64_t now_pts    = player->current_pts;
 
-    if(atomic_load(&player->state) != PLAYER_STOPPED) {
-        int64_t target_pts = (int64_t)(player->duration * percent / 100.0);
-        atomic_store(&player->seek_pos, target_pts);
-        atomic_store(&player->seek_request, 1);
+    printf("now=%lld, duration=%lld\n", now_pts, player->duration);
+
+    if(!player || player->state == PLAYER_STOPPED) return -1;
+    if(target_pts < 0) target_pts = 0;
+    if(target_pts > player->duration) target_pts = player->duration;
+
+    player->seek_pos = target_pts;
+    player->seek_request = 1;
+    return 0;
+
+}
+
+//根据毫秒数跳转
+int player_seek_ms(audio_player_t * player, int64_t target_ms)
+{
+    if(player->state != PLAYER_STOPPED) {
+        int64_t target_pts = target_ms * (AV_TIME_BASE / 1000);
+        int64_t now_pts    = player->current_pts;
+
+        printf("now=%lld, duration=%lld\n", now_pts, player->duration);
+        if(!player || target_pts < 0 || target_pts > player->duration || player->state == PLAYER_STOPPED)
+            return -1;
+        player->seek_pos = target_pts;
+        player->seek_request = 1;
         return 0;
     }
     return -1;
 }
 
-double player_get_position(audio_player_t * player)
+int64_t player_get_position_ms(audio_player_t * player)
+{
+    if(!player || player->duration <= 0) return 0;
+
+    int64_t current = player->current_pts;
+    return current / (AV_TIME_BASE / 1000);
+}
+
+int64_t player_get_duration_ms(audio_player_t * player)
+{
+    if(!player || player->duration <= 0) return 0;
+    return player->duration / (AV_TIME_BASE / 1000);
+}
+
+double player_get_position_pct(audio_player_t * player)
 {
     if(!player || player->duration <= 0) return 0.0;
-
-    int64_t current = atomic_load(&player->current_pts);
+    int64_t current = player->current_pts;
     return (double)current / player->duration * 100.0;
 }
 
-double player_get_duration(audio_player_t * player)
+player_state_t player_get_state(audio_player_t * player)
 {
-    if(!player || player->duration <= 0) return 0.0;
-    return (double)player->duration / AV_TIME_BASE;
+    if(!player) return PLAYER_STOPPED;
+    return player->state;
 }
 
 void player_destroy(audio_player_t * player)

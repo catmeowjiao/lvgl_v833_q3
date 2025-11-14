@@ -46,14 +46,6 @@ lv_obj_t * page_main() {
 	lv_obj_center(btn_label_demo);
 	lv_obj_add_event_cb(btn_demo, btn_demo_click, LV_EVENT_CLICKED, NULL);
 
-    lv_obj_t * btn_audio = lv_btn_create(screen);
-    lv_obj_set_size(btn_audio, lv_pct(45), lv_pct(25));
-    lv_obj_align(btn_audio, LV_FLEX_ALIGN_CENTER, 0, 0);
-    lv_obj_t * btn_label_audio = lv_label_create(btn_audio);
-    lv_label_set_text(btn_label_audio, "audio test");
-    lv_obj_center(btn_label_audio);
-    lv_obj_add_event_cb(btn_audio, btn_audio_click, LV_EVENT_CLICKED, NULL);
-
     lv_obj_t * btn_file_manager = lv_btn_create(screen);
     lv_obj_set_size(btn_file_manager, lv_pct(45), lv_pct(25));
     lv_obj_align(btn_file_manager, LV_FLEX_ALIGN_CENTER, 0, 0);

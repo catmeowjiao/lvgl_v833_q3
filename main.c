@@ -49,7 +49,7 @@ extern void switchRobot(void);
 extern void switchBackground(void);
 extern void switchForeground(void);
 
-uint32_t tick_get(void);
+extern uint32_t tick_get(void);
 
 int main(int argc, char *argv[])
 {

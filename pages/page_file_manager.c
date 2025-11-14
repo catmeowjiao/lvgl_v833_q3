@@ -12,7 +12,7 @@ lv_obj_t * page_file_manager()
     lv_obj_t * file_explorer = lv_100ask_file_explorer_create(screen);
     lv_obj_add_event_cb(file_explorer, explorer_event_handler, 
 							LV_EVENT_VALUE_CHANGED, NULL);
-    lv_100ask_file_explorer_open_dir(file_explorer, "/");
+    lv_100ask_file_explorer_open_dir(file_explorer, "//mnt");
 
     lv_obj_t * btn_back = lv_btn_create(screen);
     lv_obj_set_size(btn_back, lv_pct(25), lv_pct(12));
