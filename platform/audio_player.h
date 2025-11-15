@@ -32,6 +32,10 @@ typedef struct
     snd_pcm_uframes_t frames;
     unsigned int sample_rate;
     int channels;
+    snd_mixer_t * mixer;
+    snd_mixer_elem_t * elem;
+    long min_volume, max_volume;
+    int volume; // 0-100
 
     // 播放控制
     volatile int state;
@@ -61,5 +65,11 @@ int64_t player_get_duration_ms(audio_player_t * player);
 double player_get_position_pct(audio_player_t * player);
 player_state_t player_get_state(audio_player_t * player);
 void player_destroy(audio_player_t * player);
+
+// 音量控制
+int player_set_volume(audio_player_t * player, int volume);
+int player_get_volume(audio_player_t * player);
+int player_init_volume_control(audio_player_t * player);
+void player_close_volume_control(audio_player_t * player);
 
 #endif

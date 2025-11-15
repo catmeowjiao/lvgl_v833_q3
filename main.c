@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <string.h>
-#include "platform/audio_alsa.h"
+#include "platform/audio_ctrl.h"
 
 //请教DeepSeek实现了简易页面管理器，100ask那个实际上不太好用……
 #include "pages/page_manager.h"

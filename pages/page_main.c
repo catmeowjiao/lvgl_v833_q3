@@ -18,10 +18,11 @@ lv_obj_t * page_main() {
 
     lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_scroll_dir(screen, LV_DIR_VER);
+    
 
     label1 = lv_label_create(screen);
 	lv_label_set_text(label1, "ciallo lvgl");
-    lv_obj_align(label1, LV_FLEX_ALIGN_CENTER, 0, 0);
+    lv_obj_align(label1, LV_ALIGN_CENTER, 0, 0);
 
     timer = lv_timer_create(timer_tick, 250, label1);
 

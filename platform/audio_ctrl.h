@@ -8,7 +8,9 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
-#include "alsa/asoundlib.h"
+#include <unistd.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 /*********************
  *      DEFINES
@@ -21,10 +23,7 @@ extern "C" {
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-int audio_init(void);
-int audio_write(void * data, size_t size);
-int audio_release(void);
-int audio_volume(int pct);
+void audio_enable(bool b);
 
 /**********************
  *      MACROS
