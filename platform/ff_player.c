@@ -3,8 +3,12 @@
 #define BUFFER_SIZE 4096
 #define MAX_CHANNELS 6
 
-static void * play_thread_func(void * arg);
+
+static void * audio_thread_func(void * arg);
+static void * video_thread_func(void * arg);
 static bool ffmpeg_pix_fmt_has_alpha(enum AVPixelFormat pix_fmt);
+static int ffmpeg_image_allocate(ff_player_t * player);
+static uint8_t * ffmpeg_get_img_data(ff_player_t * player);
 
 ff_player_t * player_create()
 {
@@ -42,7 +46,7 @@ int player_open(ff_player_t * player, const char * filename)
 
     // 打开音频文件
     if(avformat_open_input(&player->format_ctx, player->filename, NULL, NULL) < 0) {
-        fprintf(stderr, "无法打开音频文件\n");
+        fprintf(stderr, "无法打开文件\n");
         ret = -1;
         goto cleanup;
     }
@@ -93,20 +97,20 @@ int player_init_audio(ff_player_t * player)
         goto cleanup;
     }
 
-    player->codec_ctx = avcodec_alloc_context3(codec);
-    if(!player->codec_ctx) {
+    player->audio_codec_ctx = avcodec_alloc_context3(codec);
+    if(!player->audio_codec_ctx) {
         fprintf(stderr, "无法分配解码器上下文\n");
         ret = -1;
         goto cleanup;
     }
 
-    if(avcodec_parameters_to_context(player->codec_ctx, codecpar) < 0) {
+    if(avcodec_parameters_to_context(player->audio_codec_ctx, codecpar) < 0) {
         fprintf(stderr, "无法复制编解码器参数到解码器上下文\n");
         ret = -1;
         goto cleanup;
     }
 
-    if(avcodec_open2(player->codec_ctx, codec, NULL) < 0) {
+    if(avcodec_open2(player->audio_codec_ctx, codec, NULL) < 0) {
         fprintf(stderr, "无法打开解码器\n");
         ret = -1;
         goto cleanup;
@@ -121,11 +125,11 @@ int player_init_audio(ff_player_t * player)
     }
 
     // 设置重采样参数
-    av_opt_set_int(player->swr_ctx, "in_channel_layout", av_get_default_channel_layout(player->codec_ctx->channels), 0);
+    av_opt_set_int(player->swr_ctx, "in_channel_layout", av_get_default_channel_layout(player->audio_codec_ctx->channels), 0);
     av_opt_set_int(player->swr_ctx, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
-    av_opt_set_int(player->swr_ctx, "in_sample_rate", player->codec_ctx->sample_rate, 0);
+    av_opt_set_int(player->swr_ctx, "in_sample_rate", player->audio_codec_ctx->sample_rate, 0);
     av_opt_set_int(player->swr_ctx, "out_sample_rate", 44100, 0);
-    av_opt_set_sample_fmt(player->swr_ctx, "in_sample_fmt", player->codec_ctx->sample_fmt, 0);
+    av_opt_set_sample_fmt(player->swr_ctx, "in_sample_fmt", player->audio_codec_ctx->sample_fmt, 0);
     av_opt_set_sample_fmt(player->swr_ctx, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
 
     if(swr_init(player->swr_ctx) < 0) {
@@ -173,7 +177,7 @@ int player_init_audio(ff_player_t * player)
 
     // 创建播放线程
     player->state = PLAYER_PAUSED;
-    if(pthread_create(&player->play_thread, NULL, play_thread_func, player) != 0) {
+    if(pthread_create(&player->play_thread, NULL, audio_thread_func, player) != 0) {
         fprintf(stderr, "无法创建播放线程\n");
         player->state = PLAYER_STOPPED;
         ret = -1;
@@ -240,12 +244,30 @@ int player_init_video(ff_player_t * player, lv_img_t * img)
         goto cleanup;
     }
 
-    bool has_alpha = ffmpeg_pix_fmt_has_alpha(player->video_codec_ctx->pix_fmt);
+    if(ffmpeg_image_allocate(player) < 0) {
+        LV_LOG_ERROR("ffmpeg image allocate failed");
+        ret = -1;
+        goto cleanup;
+    }
 
-    // allocate image where the decoded image will be put 
-    player->width           = player->video_codec_ctx->width;
-    player->height           = player->video_codec_ctx->height;
-    player->color          = (has_alpha ? LV_IMG_CF_TRUE_COLOR_ALPHA : LV_IMG_CF_TRUE_COLOR);
+    // 在img_dsc对象里写入图像参数
+    bool has_alpha = ffmpeg_pix_fmt_has_alpha(player->video_codec_ctx->pix_fmt);
+    int width           = player->video_codec_ctx->width;
+    int height           = player->video_codec_ctx->height;
+    player->video_dst_pix_fmt = (has_alpha ? AV_PIX_FMT_BGRA : AV_PIX_FMT_BGR0);
+
+    uint32_t data_size      = 0;
+    if(has_alpha)    data_size = width * height * LV_IMG_PX_SIZE_ALPHA_BYTE;
+    else             data_size = width * height * LV_COLOR_SIZE / 8;
+
+    player->img_dsc.header.always_zero = 0;
+    player->img_dsc.header.w           = width;
+    player->img_dsc.header.h           = height;
+    player->img_dsc.data_size          = data_size;
+    player->img_dsc.header.cf          = has_alpha ? LV_IMG_CF_TRUE_COLOR_ALPHA : LV_IMG_CF_TRUE_COLOR;
+    player->img_dsc.data               = ffmpeg_get_img_data(player);
+
+    lv_img_set_src(&player->video_area->obj, &(player->img_dsc));
 
     ret = 0;
 
@@ -255,6 +277,57 @@ int player_init_video(ff_player_t * player, lv_img_t * img)
 cleanup:
     avcodec_free_context(&player->video_codec_ctx);
     return ret;
+}
+
+static int ffmpeg_image_allocate(ff_player_t * player)
+{
+    int ret;
+
+    /* allocate image where the decoded image will be put */
+    ret = av_image_alloc(player->video_src_data, player->video_src_linesize, player->video_codec_ctx->width,
+                         player->video_codec_ctx->height, player->video_codec_ctx->pix_fmt, 4);
+
+    if(ret < 0) {
+        LV_LOG_ERROR("Could not allocate src raw video buffer");
+        return ret;
+    }
+
+    LV_LOG_INFO("alloc video_src_bufsize = %d", ret);
+
+    ret = av_image_alloc(player->video_dst_data, player->video_dst_linesize, player->video_codec_ctx->width,
+                         player->video_codec_ctx->height, player->video_dst_pix_fmt, 4);
+
+    if(ret < 0) {
+        LV_LOG_ERROR("Could not allocate dst raw video buffer");
+        return ret;
+    }
+
+    LV_LOG_INFO("allocate video_dst_bufsize = %d", ret);
+
+    player->frame = av_frame_alloc();
+
+    if(player->frame == NULL) {
+        LV_LOG_ERROR("Could not allocate frame");
+        return -1;
+    }
+
+    /* initialize packet, set data to NULL, let the demuxer fill it */
+    av_init_packet(&player->pkt);
+    player->pkt.data = NULL;
+    player->pkt.size = 0;
+
+    return 0;
+}
+
+static uint8_t * ffmpeg_get_img_data(ff_player_t * player)
+{
+    uint8_t * img_data = player->video_dst_data[0];
+
+    if(img_data == NULL) {
+        LV_LOG_ERROR("ffmpeg video dst data is NULL");
+    }
+
+    return img_data;
 }
 
 static bool ffmpeg_pix_fmt_has_alpha(enum AVPixelFormat pix_fmt)
@@ -272,7 +345,7 @@ static bool ffmpeg_pix_fmt_has_alpha(enum AVPixelFormat pix_fmt)
     return (desc->flags & AV_PIX_FMT_FLAG_ALPHA) ? true : false;
 }
 
-static void * play_thread_func(void * arg)
+static void * audio_thread_func(void * arg)
 {
     ff_player_t * player = (ff_player_t *)arg;
 
@@ -297,7 +370,7 @@ static void * play_thread_func(void * arg)
             if(av_seek_frame(player->format_ctx, player->audio_stream_index, seek_target, AVSEEK_FLAG_BACKWARD) < 0) {
                 fprintf(stderr, "跳转失败\n");
             } else {
-                avcodec_flush_buffers(player->codec_ctx);
+                avcodec_flush_buffers(player->audio_codec_ctx);
                 player->current_pts = seek_target;
             }
             player->seek_request = 0;
@@ -317,14 +390,14 @@ static void * play_thread_func(void * arg)
         }
 
         if(packet->stream_index == player->audio_stream_index) {
-            ret = avcodec_send_packet(player->codec_ctx, packet);
+            ret = avcodec_send_packet(player->audio_codec_ctx, packet);
             if(ret < 0) {
                 av_packet_unref(packet);
                 continue;
             }
 
             while(ret >= 0) {
-                ret = avcodec_receive_frame(player->codec_ctx, frame);
+                ret = avcodec_receive_frame(player->audio_codec_ctx, frame);
                 if(ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     break;
                 } else if(ret < 0) {
@@ -366,6 +439,11 @@ cleanup:
     if(audio_buffer) free(audio_buffer);
 
     return NULL;
+}
+
+static void * video_thread_func(void * arg)
+{
+
 }
 
 int player_pause(ff_player_t * player)
@@ -424,9 +502,9 @@ int player_stop(ff_player_t * player)
         player->swr_ctx = NULL;
     }
 
-    if(player->codec_ctx) {
-        avcodec_free_context(&player->codec_ctx);
-        player->codec_ctx = NULL;
+    if(player->audio_codec_ctx) {
+        avcodec_free_context(&player->audio_codec_ctx);
+        player->audio_codec_ctx = NULL;
     }
 
     if(player->format_ctx) {

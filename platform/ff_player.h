@@ -28,9 +28,11 @@ typedef struct
 {
     // FFmpeg 相关
     AVFormatContext * format_ctx;
-    AVCodecContext * codec_ctx;
+    AVCodecContext * audio_codec_ctx;
     AVCodecContext * video_codec_ctx;
     SwrContext * swr_ctx;
+    AVFrame * frame;
+    AVPacket pkt;
     int audio_stream_index;
     int video_stream_index;
 
@@ -44,11 +46,14 @@ typedef struct
     long volume_min, volume_max;
     int volume; // 0-100
 
-    //显示相关
+    // 显示相关
+    uint8_t * video_src_data[4];
+    uint8_t * video_dst_data[4];
+    int video_src_linesize[4];
+    int video_dst_linesize[4];
+    enum AVPixelFormat video_dst_pix_fmt;
     lv_img_t * video_area;
-    int width;
-    int height;
-    int color;
+    lv_img_dsc_t img_dsc;
 
     // 播放控制
     volatile int state;
