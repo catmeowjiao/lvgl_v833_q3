@@ -52,14 +52,15 @@ typedef struct
     int video_src_linesize[4];
     int video_dst_linesize[4];
     enum AVPixelFormat video_dst_pix_fmt;
-    lv_img_t * video_area;
+    lv_obj_t * video_area;
+    lv_img_t img;
     lv_img_dsc_t img_dsc;
 
     // 播放控制
     volatile int state;
     volatile int seek_request;
     volatile int64_t seek_pos;
-    pthread_t play_thread;
+    pthread_t audio_thread;
     pthread_t video_thread;
     pthread_mutex_t mutex;
 
@@ -75,7 +76,7 @@ typedef struct
 ff_player_t * player_create();
 int player_open(ff_player_t * player, const char * filename);
 int player_init_audio(ff_player_t * player);
-int player_init_video(ff_player_t * player, lv_img_t * img);
+int player_init_video(ff_player_t * player, lv_obj_t * lv_obj);
 int player_pause(ff_player_t * player);
 int player_resume(ff_player_t * player);
 int player_stop(ff_player_t * player);

@@ -177,7 +177,7 @@ int player_init_audio(ff_player_t * player)
 
     // 创建播放线程
     player->state = PLAYER_PAUSED;
-    if(pthread_create(&player->play_thread, NULL, audio_thread_func, player) != 0) {
+    if(pthread_create(&player->audio_thread, NULL, audio_thread_func, player) != 0) {
         fprintf(stderr, "无法创建播放线程\n");
         player->state = PLAYER_STOPPED;
         ret = -1;
@@ -193,13 +193,14 @@ cleanup:
     return ret;
 }
 
-int player_init_video(ff_player_t * player, lv_img_t * img)
+int player_init_video(ff_player_t * player, lv_obj_t * lv_obj)
 {
-    if(!player || !img) return -1;
+    if(!player || !lv_obj) return -1;
+
+    pthread_mutex_lock(&player->mutex);
 
     int ret            = 0;
-    player->video_area = img;
-    pthread_mutex_lock(&player->mutex);
+    player->video_area = lv_obj;
 
     // 查找视频流
     player->video_stream_index = -1;
@@ -267,9 +268,17 @@ int player_init_video(ff_player_t * player, lv_img_t * img)
     player->img_dsc.header.cf          = has_alpha ? LV_IMG_CF_TRUE_COLOR_ALPHA : LV_IMG_CF_TRUE_COLOR;
     player->img_dsc.data               = ffmpeg_get_img_data(player);
 
-    lv_img_set_src(&player->video_area->obj, &(player->img_dsc));
+    printf("width=%d, height=%d, data_size=%d\n", width, height, data_size);
+
+    //运行到这一句，程序崩溃
+    lv_img_set_src(&(player->img.obj), &(player->img_dsc));
 
     ret = 0;
+
+    if(pthread_create(&player->video_thread, NULL, video_thread_func, player) != 0) {
+        fprintf(stderr, "无法创建视频线程\n");
+        goto cleanup;
+    }
 
     pthread_mutex_unlock(&player->mutex);
     return ret;
@@ -279,6 +288,9 @@ cleanup:
     return ret;
 }
 
+/**
+ * 分配对象
+ */
 static int ffmpeg_image_allocate(ff_player_t * player)
 {
     int ret;
@@ -443,7 +455,11 @@ cleanup:
 
 static void * video_thread_func(void * arg)
 {
+    ff_player_t * player = (ff_player_t *)arg;
 
+    while(player->state != PLAYER_STOPPED) {
+
+    }
 }
 
 int player_pause(ff_player_t * player)
@@ -479,9 +495,14 @@ int player_stop(ff_player_t * player)
     player->state = PLAYER_STOPPED;
 
     // 等待线程结束
-    if(player->play_thread) {
-        pthread_join(player->play_thread, NULL);
-        player->play_thread = 0;
+    if(player->audio_thread) {
+        pthread_join(player->audio_thread, NULL);
+        player->audio_thread = 0;
+    }
+
+    if(player->video_thread) {
+        pthread_join(player->video_thread, NULL);
+        player->video_thread = 0;
     }
 
     // 清理资源
