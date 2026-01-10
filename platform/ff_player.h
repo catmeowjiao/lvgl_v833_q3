@@ -53,7 +53,6 @@ typedef struct
     int video_dst_linesize[4];
     enum AVPixelFormat video_dst_pix_fmt;
     lv_obj_t * video_area;
-    lv_img_t img;
     lv_img_dsc_t img_dsc;
 
     // 播放控制

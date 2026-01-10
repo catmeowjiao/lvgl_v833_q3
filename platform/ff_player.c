@@ -266,21 +266,23 @@ int player_init_video(ff_player_t * player, lv_obj_t * lv_obj)
     player->img_dsc.header.h           = height;
     player->img_dsc.data_size          = data_size;
     player->img_dsc.header.cf          = has_alpha ? LV_IMG_CF_TRUE_COLOR_ALPHA : LV_IMG_CF_TRUE_COLOR;
-    player->img_dsc.data               = ffmpeg_get_img_data(player);
+    player->img_dsc.data               = player->video_dst_data[0];
 
     printf("width=%d, height=%d, data_size=%d\n", width, height, data_size);
 
     //运行到这一句，程序崩溃
-    lv_img_set_src(&(player->img.obj), &(player->img_dsc));
+    lv_img_set_src(player->video_area, &(player->img_dsc));
 
     ret = 0;
 
+    /*
     if(pthread_create(&player->video_thread, NULL, video_thread_func, player) != 0) {
         fprintf(stderr, "无法创建视频线程\n");
         goto cleanup;
     }
 
     pthread_mutex_unlock(&player->mutex);
+    */
     return ret;
 
 cleanup:
@@ -329,17 +331,6 @@ static int ffmpeg_image_allocate(ff_player_t * player)
     player->pkt.size = 0;
 
     return 0;
-}
-
-static uint8_t * ffmpeg_get_img_data(ff_player_t * player)
-{
-    uint8_t * img_data = player->video_dst_data[0];
-
-    if(img_data == NULL) {
-        LV_LOG_ERROR("ffmpeg video dst data is NULL");
-    }
-
-    return img_data;
 }
 
 static bool ffmpeg_pix_fmt_has_alpha(enum AVPixelFormat pix_fmt)
@@ -494,6 +485,8 @@ int player_stop(ff_player_t * player)
 
     player->state = PLAYER_STOPPED;
 
+    pthread_mutex_unlock(&player->mutex);
+
     // 等待线程结束
     if(player->audio_thread) {
         pthread_join(player->audio_thread, NULL);
@@ -504,6 +497,8 @@ int player_stop(ff_player_t * player)
         pthread_join(player->video_thread, NULL);
         player->video_thread = 0;
     }
+
+    pthread_mutex_lock(&player->mutex);
 
     // 清理资源
     if(player->mixer) {
