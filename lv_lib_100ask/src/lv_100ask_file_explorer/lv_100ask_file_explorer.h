@@ -47,7 +47,7 @@ typedef struct {
     lv_obj_t obj;
     lv_obj_t * cont;
     lv_obj_t * head_area;
-    lv_obj_t * brower_area;
+    lv_obj_t * browser_area;
     lv_obj_t * file_list;
     lv_obj_t * quick_access_ctrl_btn;
     lv_obj_t * path_label;

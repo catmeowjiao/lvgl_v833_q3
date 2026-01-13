@@ -301,16 +301,16 @@ static void lv_100ask_file_explorer_constructor(const lv_obj_class_t * class_p, 
 #endif
 
     /* 右侧文件浏览区域 */
-    explorer->brower_area = lv_obj_create(explorer->cont);
+    explorer->browser_area = lv_obj_create(explorer->cont);
 #if LV_100ASK_FILE_EXPLORER_QUICK_ACCESS
-    lv_obj_set_size(explorer->brower_area, LV_PCT(FILE_EXPLORER_BROWER_AREA_WIDTH), LV_PCT(100));
+    lv_obj_set_size(explorer->browser_area, LV_PCT(FILE_EXPLORER_BROWER_AREA_WIDTH), LV_PCT(100));
 #else
-   lv_obj_set_size(explorer->brower_area, LV_PCT(100), LV_PCT(100));
+   lv_obj_set_size(explorer->browser_area, LV_PCT(100), LV_PCT(100));
 #endif
-    lv_obj_set_flex_flow(explorer->brower_area, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_flow(explorer->browser_area, LV_FLEX_FLOW_COLUMN);
 
     // 展示在文件浏览列表之上的区域(head)
-    explorer->head_area = lv_obj_create(explorer->brower_area);
+    explorer->head_area = lv_obj_create(explorer->browser_area);
     lv_obj_set_size(explorer->head_area, LV_PCT(100), LV_PCT(12));
     lv_obj_clear_flag(explorer->head_area, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -355,11 +355,15 @@ static void lv_100ask_file_explorer_constructor(const lv_obj_class_t * class_p, 
 
     // 展示当前路径
     explorer->path_label = lv_label_create(explorer->head_area);
+    lv_label_set_long_mode(explorer->path_label, LV_LABEL_LONG_CLIP);
+    lv_obj_set_size(explorer->path_label, LV_PCT(100), LV_PCT(100));
     lv_label_set_text(explorer->path_label, "/"/*"https://lvgl.100ask.net"*/);
-    lv_obj_center(explorer->path_label);
+    lv_obj_set_style_text_align(explorer->path_label, LV_TEXT_ALIGN_RIGHT, NULL);
+    lv_obj_align(explorer->path_label, LV_ALIGN_TOP_MID, 0, LV_PCT(50));
+    
 
     // 目录内容展示列表
-    explorer->file_list = lv_table_create(explorer->brower_area);
+    explorer->file_list = lv_table_create(explorer->browser_area);
     lv_obj_set_size(explorer->file_list, LV_PCT(100), LV_PCT(84));
     lv_table_set_col_width(explorer->file_list, 0, LV_PCT(100));
     lv_table_set_col_cnt(explorer->file_list, 1);
@@ -459,7 +463,7 @@ static void init_style(lv_obj_t * obj)
 #endif
 
     lv_obj_add_style(explorer->cont, &cont_style, 0);
-    lv_obj_add_style(explorer->brower_area, &brower_area_style, 0);
+    lv_obj_add_style(explorer->browser_area, &brower_area_style, 0);
 #if LV_100ASK_FILE_EXPLORER_QUICK_ACCESS
     lv_obj_add_style(explorer->quick_access_area, &quick_access_area_style, 0);
     lv_obj_add_style(explorer->list_device, &quick_access_list_style, 0);
@@ -546,11 +550,11 @@ static void quick_access_ctrl_btn_event_handler(lv_event_t * e)
     if(code == LV_EVENT_VALUE_CHANGED) {
         if (lv_obj_has_state(btn, LV_STATE_CHECKED)) {
             lv_obj_add_flag(explorer->quick_access_area, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_size(explorer->brower_area, LV_PCT(100), LV_PCT(100));
+            lv_obj_set_size(explorer->browser_area, LV_PCT(100), LV_PCT(100));
         }
         else {
             lv_obj_clear_flag(explorer->quick_access_area, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_size(explorer->brower_area, LV_PCT(FILE_EXPLORER_BROWER_AREA_WIDTH), LV_PCT(100));
+            lv_obj_set_size(explorer->browser_area, LV_PCT(FILE_EXPLORER_BROWER_AREA_WIDTH), LV_PCT(100));
         }
     }
 }
