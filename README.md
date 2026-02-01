@@ -1,4 +1,17 @@
-# lvgl_v833_q3
-A simple lvgl program running on AllWinner V833 development board
+##只是一个简易的linux嵌入式设备上的lvgl demo
+可以实现简易的文件浏览、MP3、小游戏等功能
 
-**THIS REPOSITORY IS UNDER CONSTRUCTION...**
+## 运行平台
+**全志 V833**
+
+## 怎么编译源代码
+* 建议使用**linux系统**
+* 拉取源代码
+* 安装交叉编译器
+> 例如armhf musl gcc编译器
+* 将项目文件中build.sh中的文件路径改为你的编译器路径<br>
+* 运行./build.sh等待编译完成，输出的可执行文件为demo
+* res文件夹里存放了程序所需要的字体和图片资源等
+
+## 其他
+* 字体使用了：阿里巴巴普惠体 Medium、FontAwesome 5 Free Solid，为了在lvgl中正常使用图标，对这两个字体进行了合并。若要换用自己的字体，可以使用FontForge软件，将FontAwesome中 #61440 之后的所有图标复制到现有字体中，再进行大小缩放。

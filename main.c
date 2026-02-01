@@ -51,7 +51,20 @@ extern void switchRobot(void);
 extern void switchBackground(void);
 extern void switchForeground(void);
 
+extern lv_style_t getFontStyle(const char * filename, uint16_t weight, uint16_t style);
+
 extern uint32_t tick_get(void);
+
+void readKeyPower(void);
+void readKeyHome(void);
+void lcdInit(void);
+void lcdOpen(void);
+void lcdClose(void);
+void lcdRefresh(void);
+void touchOpen(void);
+void touchClose(void);
+
+static lv_style_t style_default;
 
 int main(int argc, char *argv[])
 {
@@ -122,7 +135,8 @@ int main(int argc, char *argv[])
     disp_drv.flush_cb   = fbdev_flush;
     disp_drv.hor_res    = 240;
     disp_drv.ver_res    = 240;
-    lv_disp_drv_register(&disp_drv);
+    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
+    lv_disp_set_default(disp);
 
     evdev_init();
     static lv_indev_drv_t indev_drv;
@@ -132,6 +146,30 @@ int main(int argc, char *argv[])
     lv_indev_t *indev = lv_indev_drv_register(&indev_drv);
 
 	lv_ffmpeg_init();
+
+    lv_obj_t * screen = lv_obj_create(NULL);
+    lv_scr_load(screen);
+
+    lv_freetype_init(128, 4, 0);
+
+    lv_ft_info_t ft_info;
+    ft_info.name   = "/mnt/UDISK/lvgl/res/font.otf";
+    ft_info.weight = 16;
+    ft_info.style  = FT_FONT_STYLE_NORMAL;
+    ft_info.mem    = NULL;
+
+    if(lv_ft_font_init(&ft_info)) {
+        lv_theme_t * theme =
+        lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_LIGHT_GREEN), lv_palette_main(LV_PALETTE_GREEN), true, ft_info.font);
+        theme->font_normal = ft_info.font;
+        theme->font_large = ft_info.font;
+        theme->font_small = ft_info.font;  //为啥子设置不上？
+        lv_disp_set_theme(disp, theme);
+    
+        lv_style_init(&style_default);
+        lv_style_set_text_font(&style_default, ft_info.font);
+        lv_obj_add_style(lv_scr_act(), &style_default, 0);
+    }
 
     page_manager_init();
     page_open(page_main(), NULL);
@@ -321,4 +359,22 @@ void switchForeground(void)
     //等待自己被脚本杀死，然后开始新的轮回
     //因为这里确实处理不好设备占用问题，只能把两个全杀了再重启自己
     sleep(114514);
+}
+
+lv_style_t getFontStyle(const char *filename, uint16_t weight, uint16_t font_style)
+{
+    lv_style_t style;
+    lv_style_init(&style);
+
+    lv_ft_info_t ft_info;
+    ft_info.name   = filename;
+    ft_info.weight = weight;
+    ft_info.style  = font_style;
+    ft_info.mem    = NULL;
+
+    if(lv_ft_font_init(&ft_info)) {
+        lv_style_set_text_font(&style, ft_info.font);
+    }
+    
+    return style;
 }
