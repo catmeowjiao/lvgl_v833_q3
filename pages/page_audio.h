@@ -20,6 +20,9 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
+#define SYMBOL_BACK "\uF053"
+#define SYMBOL_CYCLE "\uF021"
+#define SYMBOL_BAN "\uF05E"
 
 /**********************
  *      TYPEDEFS
