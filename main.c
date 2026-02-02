@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <linux/fb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pthread.h>
@@ -225,7 +226,8 @@ uint32_t tick_get(void)
 
 void lcdInit(void)
 {
-    //ioctl(devfb0, 0x4601u, 1);
+    //int rotation = 1;
+    //ioctl(fbd, 0x4619, &rotation);
 }
 
 void lcdOpen(void) {
@@ -337,7 +339,6 @@ void setDontDeepSleep(bool b){
 void switchRobot(void){
     switchBackground();
 
-    chdir(homepath);
     system("chmod 777 ./switch_robot");
     system("sh ./switch_robot");
 }

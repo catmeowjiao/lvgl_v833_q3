@@ -63,6 +63,11 @@ lv_obj_t * page_audio(char * filename)
     lv_obj_center(btn_back_label);
     lv_obj_add_event_cb(btn_back, back_click, LV_EVENT_CLICKED, player);
 
+    lv_text_clock_t * clock = lv_text_clock_create(screen);
+    lv_obj_set_size(clock, lv_pct(100), lv_pct(12));
+    lv_obj_align(clock, LV_ALIGN_TOP_MID, 0, lv_pct(2));
+    lv_obj_set_style_text_align(clock, LV_TEXT_ALIGN_CENTER, NULL);
+
     return screen;
 }
 

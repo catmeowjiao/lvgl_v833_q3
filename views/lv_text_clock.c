@@ -4,29 +4,11 @@
  */
 
 #include "lv_text_clock.h"
-#include <time.h>
-#include <string.h>
-
-/*********************
- *      DEFINES
- *********************/
-
-/**********************
- *      TYPEDEFS
- **********************/
-
-/**********************
- *  STATIC PROTOTYPES
- **********************/
 
 static void lv_text_clock_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj);
 static void lv_text_clock_destructor(const lv_obj_class_t * class_p, lv_obj_t * obj);
 static void lv_text_clock_timer_cb(lv_timer_t * timer);
 static void lv_text_clock_update_time(lv_text_clock_t * clock);
-
-/**********************
- *  STATIC VARIABLES
- **********************/
 
 static const lv_obj_class_t lv_text_clock_class = {
     .constructor_cb = lv_text_clock_constructor,
@@ -36,17 +18,13 @@ static const lv_obj_class_t lv_text_clock_class = {
 };
 
 /**********************
- *      MACROS
- **********************/
-
-/**********************
  *   GLOBAL FUNCTIONS
  **********************/
 
 lv_obj_t * lv_text_clock_create(lv_obj_t * parent)
 {
-    LV_LOG_INFO("begin");
-    
+    LV_LOG_INFO("Start to create text clock\n");
+
     /* 创建对象 */
     lv_obj_t * obj = lv_obj_class_create_obj(&lv_text_clock_class, parent);
     lv_obj_class_init_obj(obj);
@@ -70,22 +48,21 @@ static void lv_text_clock_constructor(const lv_obj_class_t * class_p, lv_obj_t *
     memset(clock->time_str, 0, sizeof(clock->time_str));
 
     /* 设置初始文本 */
-    lv_label_set_text(&clock->obj, "00:00:00");
-    
-    
-    /*
-    // 创建更新定时器（每秒更新一次
-    //clock->timer = lv_timer_create(lv_text_clock_timer_cb, 1000, clock);
-    if(clock->timer == NULL) {
-        LV_LOG_ERROR("Failed to create timer for text clock");
-        return;
-    }
+    lv_label_set_text(&clock->label, "00:00:00");
     
     // 立即更新时间 
     lv_text_clock_update_time(clock);
     
-    LV_LOG_INFO("Text clock created");
-    */
+    // 创建更新定时器（每秒更新一次
+    clock->timer = lv_timer_create(lv_text_clock_timer_cb, 1000, obj);
+    if(clock->timer == NULL) {
+        LV_LOG_ERROR("Failed to create timer for text clock\n");
+        return;
+    }
+    
+    
+    LV_LOG_INFO("Text clock created\n");
+    
     
 }
 
@@ -102,7 +79,7 @@ static void lv_text_clock_destructor(const lv_obj_class_t * class_p, lv_obj_t * 
         clock->timer = NULL;
     }
     
-    LV_LOG_INFO("Text clock deleted");
+    LV_LOG_INFO("Text clock deleted\n");
 }
 
 /**
@@ -129,7 +106,7 @@ static void lv_text_clock_update_time(lv_text_clock_t * clock)
     timeinfo = localtime(&rawtime);
     
     if(timeinfo == NULL) {
-        lv_label_set_text(&clock->obj, "Error");
+        lv_label_set_text(&clock->label, "Error");
         return;
     }
     
@@ -141,5 +118,5 @@ static void lv_text_clock_update_time(lv_text_clock_t * clock)
              timeinfo->tm_sec);
     
     /* 更新标签文本 */
-    lv_label_set_text(&clock->obj, clock->time_str);
+    lv_label_set_text(&clock->label, clock->time_str);
 }

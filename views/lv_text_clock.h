@@ -15,6 +15,8 @@ extern "C" {
  *********************/
 #include "../lvgl/lvgl.h"
 #include <stdio.h>
+#include <time.h>
+#include <string.h>
 
 /*********************
  *      DEFINES
@@ -26,7 +28,7 @@ extern "C" {
 
 /* 时钟数据结构 */
 typedef struct {
-    lv_obj_t obj;               /* 基础对象，必须放在第一位 */
+    lv_label_t label;               /* 基础对象，必须放在第一位 */
     lv_timer_t * timer;         /* 更新定时器 */
     char time_str[32];          /* 时间字符串缓冲区 */
 } lv_text_clock_t;
