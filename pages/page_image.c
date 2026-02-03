@@ -19,7 +19,7 @@ lv_obj_t * page_image(char * src)
 
     lv_obj_t * btn_back = lv_btn_create(screen);
     lv_obj_set_size(btn_back, lv_pct(25), lv_pct(12));
-    lv_obj_align(btn_back, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_align(btn_back, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_obj_t * btn_back_label = lv_label_create(btn_back);
     lv_label_set_text(btn_back_label, CUSTOM_SYMBOL_BACK "");
     lv_obj_center(btn_back_label);
