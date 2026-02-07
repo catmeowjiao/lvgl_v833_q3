@@ -203,10 +203,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    close(fbd);
-    close(dispd);
-    close(powerd);
-    close(homed);
+    if(fbd) close(fbd);
+    if(dispd) close(dispd);
+    if(homed) close(homed);
+    if(powerd) close(powerd);
     return 0;
 }
 
@@ -355,6 +355,9 @@ void switchBackground(void){
     if(backgroundTs != -1) return;
     backgroundTs = tick_get();
     sleepTs    = -1;
+    if(fbd) close(fbd);
+    if(dispd) close(dispd);
+    if(powerd) close(powerd);
 }
 
 void switchForeground(void)
