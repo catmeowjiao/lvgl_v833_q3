@@ -75,6 +75,7 @@ lv_obj_t * page_image(char * src)
 
 static void back_click(lv_event_t * e)
 {
+    lv_img_cache_invalidate_src(NULL);
     page_back();
 }
 

@@ -246,6 +246,7 @@ static void back_click(lv_event_t * e)
 {
     lv_timer_pause(timer_move);
     lv_timer_del(timer_move);
+    lv_img_cache_invalidate_src(NULL);
     page_back();
 }
 
