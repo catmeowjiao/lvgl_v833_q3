@@ -317,6 +317,7 @@ void sysWake(void){
 	deepSleep = false;
 	sleepTs = -1;
 	touchOpen();
+    lcdInit();
     lcdOpen();
 }
 
