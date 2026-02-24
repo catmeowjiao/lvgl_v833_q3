@@ -1,6 +1,6 @@
 {
     "cmake.ignoreCMakeListsMissing": true,
-    "files.associations": {
-        "audio_alsa.h": "c"
+    "files.exclude": {
+        "**/*.o": true
     }
 }
