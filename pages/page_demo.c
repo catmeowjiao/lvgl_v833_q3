@@ -10,12 +10,18 @@ lv_obj_t * page_demo() {
 
     lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_scroll_dir(screen, LV_DIR_VER);
-	
-	lv_obj_t * label1 = lv_label_create(screen);
-	lv_label_set_text(label1, "Hello World!");
+
+    cJSON * cjson_test    = cJSON_Parse("{\"code\":0, \"content\":\"Hello World!\"}");
+    cJSON * cjson_code = cJSON_GetObjectItem(cjson_test, "code");
+    cJSON * cjson_content = cJSON_GetObjectItem(cjson_test, "content");
+
+    lv_obj_t * label1 = lv_label_create(screen);
+	lv_label_set_text(label1, cjson_content->valuestring);
 	lv_obj_align(label1, LV_FLEX_ALIGN_CENTER, 0, 0);
 
-	lv_obj_t * slider1 = lv_slider_create(screen);
+    cJSON_Delete(cjson_test);
+
+    lv_obj_t * slider1 = lv_slider_create(screen);
 	lv_obj_set_size(slider1, lv_pct(80), lv_pct(10));
 	lv_obj_align(slider1, LV_FLEX_ALIGN_CENTER, 0, 0);
 	lv_slider_set_range(slider1, 1, 255);
