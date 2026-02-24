@@ -313,28 +313,35 @@ void readKeyHome(void) {
     }
 }
 
-void sysWake(void){
-	deepSleep = false;
-	sleepTs = -1;
-	touchOpen();
-    lcdOpen();
+void sysWake(void) {
+    if(sleepTs != -1) {
+        deepSleep = false;
+        sleepTs   = -1;
+        touchOpen();
+        lcdOpen();
+    }
 }
 
-void sysSleep(void){
-	deepSleep = false;
-	sleepTs = tick_get();
-	touchClose();
-	lcdClose();
+void sysSleep(void) {
+    if(sleepTs == -1) {
+        deepSleep = false;
+        sleepTs   = tick_get();
+        touchClose();
+        lcdClose();
+    }
 }
 
-void sysDeepSleep(void){
+void sysDeepSleep(void) {
 	deepSleep = true;
-    sleepTs   = -1;
     // 睡死过去，相当省电
     system("echo \"0\" >/sys/class/rtc/rtc0/wakealarm");
     system("echo \"mem\" > /sys/power/state");
 
     // 按电源键会醒过来，继续执行下面的代码
+
+    sysWake(); // 那睡觉的起来了嗷（改到这里是为了防止其他醒来的情况，比如插拔usb）
+    char buffer[16] = {0};
+    while(read(powerd, buffer, 0x10u) > 0);    //清空电源键的缓冲区，因为开机按的电源键也算数
 }
 
 void setDontDeepSleep(bool b){
