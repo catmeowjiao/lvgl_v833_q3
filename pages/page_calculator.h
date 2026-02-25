@@ -8,9 +8,7 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
-#include "../lvgl/lvgl.h"
-#include "../lv_lib_100ask/lv_lib_100ask.h"
-#include "page_manager.h"
+#include "main.h"
 
 /*********************
  *      DEFINES
