@@ -29,7 +29,7 @@ extern "C" {
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-BasePage * audio_page_create(char * filename);
+BasePage * page_audio_create(char * filename);
 
 /**********************
  *      MACROS

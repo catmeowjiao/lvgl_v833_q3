@@ -51,11 +51,11 @@ static void explorer_event_handler(lv_event_t * e)
             str_end_with(file_name, ".ogg", false) || str_end_with(file_name, ".m4a", false) ||
             str_end_with(file_name, ".aac", false) || str_end_with(file_name, ".pcm", false))
             {
-                page_open(audio_page_create(&file_name));
+                page_open(page_audio_create(&file_name));
             }
             
         if(str_end_with(file_name, ".mp4", false)) {
-            page_open_obj(page_apple(&file_name));
+            page_open(page_video_create(&file_name));
         }
             
     }

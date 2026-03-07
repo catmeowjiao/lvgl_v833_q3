@@ -22,20 +22,20 @@ static void slider_progress_released(lv_event_t * e);
 static void slider_volume_changed(lv_event_t * e);
 static void slider_volume_released(lv_event_t * e);
 static void player_finished(void * p);
-static void audio_page_destroy(void * p);
+static void page_audio_destroy(void * p);
 
-BasePage * audio_page_create(char * filename)
+BasePage * page_audio_create(char * filename)
 {
     AudioPage * page = malloc(sizeof(AudioPage));
     if(!page) return NULL;
     memset(page, 0, sizeof(AudioPage));
 
     page->base.obj        = page_audio_obj(page, filename);
-    page->base.on_destroy = audio_page_destroy;
+    page->base.on_destroy = page_audio_destroy;
     return page;
 }
 
-lv_obj_t * page_audio_obj(AudioPage * page, char * filename)
+static lv_obj_t * page_audio_obj(AudioPage * page, char * filename)
 {
     lv_obj_t * screen = lv_obj_create(lv_scr_act());
     lv_obj_remove_style_all(screen);
@@ -187,14 +187,12 @@ static void back_click(lv_event_t * e)
     page_back();
 }
 
-static void audio_page_destroy(void * p)
+static void page_audio_destroy(void * p)
 {
-    LV_LOG_USER("audio destroy");
     AudioPage * page = (AudioPage *)p;
     if(page->timer) lv_timer_del(page->timer);
     if(page->player) player_destroy(page->player);
     page->player = NULL;
     audio_disable();
     setDontDeepSleep(false);
-    LV_LOG_USER("audio destroy done");
 }
