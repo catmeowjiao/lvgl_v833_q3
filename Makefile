@@ -7,6 +7,7 @@ CFLAGS ?= -O3 -g0 -I$(LVGL_DIR) -I$(LVGL_DIR)/include -Wall -Wshadow -Wundef -Wm
 LDFLAGS ?= -L$(LVGL_DIR)/lib -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lpostproc -lswresample -lswscale -lz -lasound -lfreetype -lcurl -lssl -lcrypto -lpthread #-static
 BIN = demo
 
+CFLAGS += -fdiagnostics-color=always
 
 #Collect the files to compile
 MAINSRC = ./main.c
@@ -38,7 +39,7 @@ all: default
 
 %.o: %.c
 	@$(CC)  $(CFLAGS) -c $< -o $@
-	@echo "CC  $<"
+	@echo "[CC]  $<"
     
 default: $(AOBJS) $(COBJS) $(MAINOBJ)
 	$(CC) -o $(BIN) $(MAINOBJ) $(AOBJS) $(COBJS) $(LDFLAGS)
