@@ -44,7 +44,7 @@ static void explorer_event_handler(lv_event_t * e)
             str_end_with(file_name, ".jpeg", false) || str_end_with(file_name, ".bmp", false) ||
             str_end_with(file_name, ".gif", false)) 
             {
-                page_open_obj(page_image(&file_name));
+                page_open(page_image_create(&file_name));
             }
 
         if(str_end_with(file_name, ".mp3", false) || str_end_with(file_name, ".wav", false) ||
